@@ -231,24 +231,10 @@ static void log_init() {
 static void log_message(int log_level, const char *fmt, ...) {
 	va_list ap;
 	
-	char time_str[32];
-    struct tm *tm;
-
-	if (conf.log_file) {
-		va_start(ap, fmt);
-		time_t now = time (0);
-		tm = localtime (&now);		
-		strftime (time_str, sizeof(time_str), "%h %e %T", tm);
-
-		fprintf(conf.log_file,"%s %s %s[%d]: ",time_str,hostname,daemon_name,getpid());
-		vfprintf(conf.log_file,fmt, ap);
-		fprintf(conf.log_file,"\n");
-		fflush(conf.log_file);
-	}
-	if ( conf.syslog_facility != SYSLOG_DISABLE) {
-		va_start(ap, fmt);
-		vsyslog(log_level, fmt, ap);
-	}
+	va_start(ap, fmt);
+	vfprintf(stdout,fmt, ap);
+	fprintf(stdout,"\n");
+	fflush(stdout);
 
 	va_end(ap);
 }
