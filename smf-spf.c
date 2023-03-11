@@ -1301,7 +1301,6 @@ int main(int argc, char **argv) {
 	goto done;
     }
 	// LCOV_EXCL_END
-    umask(0177);
     if (conf.spf_ttl && !cache_init()) log_message(LOG_ERR, "[ERROR] cache engine init failed");
     ret = smfi_main();
     if (ret != MI_SUCCESS) log_message(LOG_ERR, "[ERROR] terminated due to a fatal error");
