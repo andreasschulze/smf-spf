@@ -1087,6 +1087,7 @@ static sfsistat smf_header(SMFICTX *ctx, char *name, char *value) {
 
 static sfsistat smf_eom(SMFICTX *ctx) {
     struct context *context = (struct context *)smfi_getpriv(ctx);
+    char *queueid = NULL;
 
     if ((context->status == SPF_RESULT_FAIL || context->status == SPF_RESULT_SOFTFAIL) && conf.tag_subject) {
 	char *subj = NULL;
@@ -1109,6 +1110,12 @@ static sfsistat smf_eom(SMFICTX *ctx) {
 	    free(subj);
 	}
     }
+    if ((queueid = )smfi_getsymval(ctx, "{i}")) == NULL {
+        queueid = "unknown";
+    }
+    log_message(LOG_NOTICE, "%s: spf=%s: ip=%s, fqdn=%s, helo=%s, from=%s",
+        queueid, SPF_strresult(context->status), context->addr, context->fqdn, context->helo, context->from);
+
     if (conf.add_header) {
 	char *spf_hdr = NULL;
 
