@@ -1110,7 +1110,7 @@ static sfsistat smf_eom(SMFICTX *ctx) {
 	    free(subj);
 	}
     }
-    if ((queueid = )smfi_getsymval(ctx, "{i}")) == NULL {
+    if ((queueid = smfi_getsymval(ctx, "{i}")) == NULL) {
         queueid = "unknown";
     }
     log_message(LOG_NOTICE, "%s: spf=%s: ip=%s, fqdn=%s, helo=%s, from=%s",
