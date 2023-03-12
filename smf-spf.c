@@ -828,7 +828,7 @@ static sfsistat smf_connect(SMFICTX *ctx, char *name, _SOCK_ADDR *sa) {
 
     if (sa == NULL)
     {
-        log_message(LOG_NOTICE, "unknown sender IP address, skipping SPF check");
+        log_message(LOG_NOTICE, "spf=skip reason=unknown_sender_IP_address");
         return SMFIS_ACCEPT;
     }
 
@@ -887,7 +887,7 @@ static sfsistat smf_envfrom(SMFICTX *ctx, char **args) {
     if (*args) strscpy(context->from, *args, sizeof(context->from) - 1);
     if (strstr(context->from, "<>")) {
 		if (conf.skip_ndr) {
-			log_message(LOG_INFO, "SPF skip : empty sender, helo=%s, ip=%s",context->helo,context->addr);
+			log_message(LOG_INFO, "spf=skip reason=empty_sender helo=%s ip=%s",context->helo,context->addr);
 			return SMFIS_ACCEPT;
 		}
 	strtolower(context->helo);
@@ -902,7 +902,7 @@ static sfsistat smf_envfrom(SMFICTX *ctx, char **args) {
         }
 	}
     if ((conf.skip_auth) && (smfi_getsymval(ctx, "{auth_authen}"))){
-	    log_message(LOG_INFO, "SPF skip : username %s, from=%s", smfi_getsymval(ctx, "{auth_authen}"), context->from);
+	    log_message(LOG_INFO, "spf=skip reason=authenticated_user username=%s from=%s", smfi_getsymval(ctx, "{auth_authen}"), context->from);
 		return SMFIS_ACCEPT;
 	}
     if (!strstr(context->from, "<>")) {
@@ -950,7 +950,7 @@ static sfsistat smf_envfrom(SMFICTX *ctx, char **args) {
     SPF_request_set_helo_dom(spf_request, context->helo);
     SPF_request_set_env_from(spf_request, context->sender);
     if (SPF_request_query_mailfrom(spf_request, &spf_response)) {
-	log_message(LOG_INFO, "SPF none: ip=%s, fqdn=%s, helo=%s, from=%s", context->addr, context->fqdn, context->helo, context->from);
+	log_message(LOG_INFO, "spf=none ip=%s fqdn=%s helo=%s from=%s", context->addr, context->fqdn, context->helo, context->from); // my
     if ((status == SPF_RESULT_NONE) || (status == SPF_RESULT_INVALID)) {
             if (conf.refuse_none && !strstr(context->from, "<>")) {
                     char reject[2 * MAXLINE];
@@ -980,7 +980,7 @@ static sfsistat smf_envfrom(SMFICTX *ctx, char **args) {
     }
     if (!spf_response) goto done;
     status = SPF_response_result(spf_response);
-    log_message(LOG_NOTICE, "SPF %s: ip=%s, fqdn=%s, helo=%s, from=%s", SPF_strresult(status), context->addr, context->fqdn, context->helo, context->from);
+//  log_message(LOG_NOTICE, "SPF %s: ip=%s, fqdn=%s, helo=%s, from=%s", SPF_strresult(status), context->addr, context->fqdn, context->helo, context->from);
     switch (status) {
 	case SPF_RESULT_PASS:
 	case SPF_RESULT_FAIL:
@@ -1073,6 +1073,7 @@ static sfsistat smf_header(SMFICTX *ctx, char *name, char *value) {
 
 static sfsistat smf_eom(SMFICTX *ctx) {
     struct context *context = (struct context *)smfi_getpriv(ctx);
+    char *queueid = NULL;
 
     if ((context->status == SPF_RESULT_FAIL || context->status == SPF_RESULT_SOFTFAIL) && conf.tag_subject) {
 	char *subj = NULL;
@@ -1095,6 +1096,12 @@ static sfsistat smf_eom(SMFICTX *ctx) {
 	    free(subj);
 	}
     }
+    if ((queueid = smfi_getsymval(ctx, "{i}")) == NULL) {
+        queueid = "unknown";
+    }
+    log_message(LOG_NOTICE, "%s: spf=%s ip=%s fqdn=%s helo=%s from=%s",
+        queueid, SPF_strresult(context->status), context->addr, context->fqdn, context->helo, context->from);
+
     if (conf.add_header) {
 	char *spf_hdr = NULL;
 
